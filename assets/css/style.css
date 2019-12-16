@@ -46,10 +46,10 @@ h6 {
   letter-spacing: 1px;
   color: #ffffff;
   border-radius: 3px;
-  box-shadow: 0 3px 0 #0a7daf;
+  box-shadow: 0 3px 0 #f31205;
 }
 .btn.btn-custom:hover {
-  background-color: #0a7daf;
+  background-color: #f31205;
 }
 .btn.btn-custom > i {
   padding-right: 2px;
@@ -105,7 +105,7 @@ span.divider.center {
 	transition: all 0.3s ease-in-out;
 }
 .link-btn a:hover {
-	background-color: #0a7daf;
+	background-color: #f31205;
 }
 .link-btn a i {
 	margin-right: 10px;
@@ -136,7 +136,7 @@ span.divider.center {
 	margin-right: 12px;
 }
 .link-btn-2 a:hover {
-	background-color: #0a7daf;
+	background-color: #f31205;
 }
 .btn-x2 {
     padding: 15px 30px;
