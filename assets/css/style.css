@@ -39,17 +39,17 @@ h6 {
   font-family: 'Raleway', sans-serif;
 }
 .btn.btn-custom {
-  background-color: #f31205;
+  background-color: #F6767E;
   font-family: 'Raleway', sans-serif;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 1px;
   color: #ffffff;
   border-radius: 3px;
-  box-shadow: 0 3px 0 #f31205;
+  box-shadow: 0 3px 0 #F6767E;
 }
 .btn.btn-custom:hover {
-  background-color: #f31205;
+  background-color: #F6767E;
 }
 .btn.btn-custom > i {
   padding-right: 2px;
@@ -58,7 +58,7 @@ h6 {
   color: #52b3d9;
 }
 #title-rotate {
-  color: #f31205;
+  color: #F6767E;
 }
 @media (max-width: 767px) {
   .btn.btn-lg.btn-custom {
@@ -72,7 +72,7 @@ span.divider {
   margin: 35px 0px;
   width: 150px;
   height: 2px;
-  background-color: #f31205;
+  background-color: #F6767E;
 }
 span.divider.center {
   margin-right: auto;
@@ -91,13 +91,13 @@ span.divider.center {
 	padding-right: 34px;
 	padding-top: 16px;
 	padding-bottom: 16px;
-	background-color: #f31205;
+	background-color: #F6767E;
 	color: #fff;
 	text-decoration: none;
 	font-size: 24px;
 	font-weight: 400;
 	border-radius: 4px;
-	border: 4px solid #f31205;
+	border: 4px solid #F6767E;
 	font-weight: 600;
 	-webkit-transition: all 0.3s ease-in-out;
 	-moz-transition: all 0.3s ease-in-out;
@@ -105,7 +105,7 @@ span.divider.center {
 	transition: all 0.3s ease-in-out;
 }
 .link-btn a:hover {
-	background-color: #f31205;
+	background-color: #F6767E;
 }
 .link-btn a i {
 	margin-right: 10px;
@@ -119,13 +119,13 @@ span.divider.center {
 	padding-right: 25px;
 	padding-top: 20px;
 	padding-bottom: 20px;
-	background-color: #f31205;
+	background-color: #F6767E;
 	color: #fff;
 	font-size: 24px;
 	font-weight: 400;
 	text-decoration: none;
 	border-radius: 4px;
-	border: 4px solid #f31205;
+	border: 4px solid #F6767E;
 	font-weight: 600;
 	-webkit-transition: all 0.3s ease-in-out;
 	-moz-transition: all 0.3s ease-in-out;
@@ -136,7 +136,7 @@ span.divider.center {
 	margin-right: 12px;
 }
 .link-btn-2 a:hover {
-	background-color: #f31205;
+	background-color: #F6767E;
 }
 .btn-x2 {
     padding: 15px 30px;
@@ -154,8 +154,8 @@ span.divider.center {
 .btn-x2:active,
 .btn-x2.active,
 .open .dropdown-toggle.btn-x2 {
-    border-color: #f31205;
-    color: #f31205;
+    border-color: #F6767E;
+    color: #F6767E;
     background-color: transparent;
 }
 .scroll-up {
@@ -165,7 +165,7 @@ span.divider.center {
 	right: 1.8em;
 }
 .scroll-up a {
-	background-color: #f31205;
+	background-color: #F6767E;
 	display: block;
 	width: 28px;
 	height: 28px;
@@ -451,7 +451,7 @@ header.landpage .landpage-body .landpage-text .page-scroll {
   border: 0;
   height: 66px;
   background-color: #171717;
-  border-bottom: 6px solid #f31205;
+  border-bottom: 6px solid #F6767E;
 }
 .navbar.navbar-fixed-top .navbar-container {
   background-color: #171717;
@@ -460,7 +460,7 @@ header.landpage .landpage-body .landpage-text .page-scroll {
   font-family: 'Pacifico', sans-serif;'
   font-size: 40px;
   font-weight: 100;
-  color: #f31205;
+  color: #F6767E;
   letter-spacing: 0.1em;
   height: 54px;
   line-height: 54px;
@@ -491,8 +491,8 @@ header.landpage .landpage-body .landpage-text .page-scroll {
   height: 54px
   line-height: 54px;
   background-color: #171717;
-  color: #f31205;
-	border-top: 6px solid #f31205;
+  color: #F6767E;
+	border-top: 6px solid #F6767E;
 }
 .navbar.navbar-fixed-top .navbar-nav > li > a:focus {
   background-color: #171717;
@@ -500,11 +500,11 @@ header.landpage .landpage-body .landpage-text .page-scroll {
 }
 .navbar.navbar-fixed-top .navbar-nav > li.active a,
 .navbar.navbar-fixed-top .navbar-nav > li.active a:hover {
-  background-color: #f31205;
+  background-color: #F6767E;
   color: #171717;
 }
 .navbar.navbar-fixed-top .navbar-toggle {
-  background-color: #f31205;
+  background-color: #F6767E;
   border-radius: 3px;
   margin-top: 18px;
 }
@@ -547,7 +547,7 @@ section {
 	font-family: 'Raleway', sans-serif;
 	font-size: 40px;
 	font-weight: 600;
-	color: #f31205;
+	color: #F6767E;
 }
 .section-heading h1 {
 	margin-top: 30px;
@@ -579,7 +579,7 @@ section {
 	font-family: 'Dancing Script', sans-serif;
 	font-size: 26px;
 	font-weight: 100;
-  color: #f31205;
+  color: #F6767E;
 }
 /* --- Section CSS Ends --- */
 
@@ -603,7 +603,7 @@ section {
 	font-family: 'Raleway', sans-serif;
 	font-size: 20px;
 	font-weight: 600;
-  color: #f31205;
+  color: #F6767E;
 }
 #about .col-left {
 	text-align: right;
@@ -711,7 +711,7 @@ section {
 	font-size: 20px;
 	font-weight: 600;
 	padding-bottom: 12px;
-	color: #f31205;
+	color: #F6767E;
 }
 .education-timeline .university {
 	font-size: 16px;
@@ -735,11 +735,11 @@ section {
 	transition: all 0.3s ease-in-out;
 }
 .education-timeline .education:hover .divider {
-	background-color: #f31205;
+	background-color: #F6767E;
 	color: #fff;
 }
 .education-timeline .education:hover .duration {
-	color: #f31205;
+	color: #F6767E;
 }
 .education-timeline .row {
 	padding-bottom: 60px;
@@ -798,7 +798,7 @@ section {
 	font-size: 20px;
 	font-weight: 600;
 	padding-bottom: 1px;
-	color: #f31205;
+	color: #F6767E;
 }
 .experience-timeline .designation {
 	font-size: 16px;
@@ -821,7 +821,7 @@ section {
 	padding-bottom: 6px;
 }
 .experience-timeline .url a {
-	color: #f31205;
+	color: #F6767E;
 	-webkit-transition: all 0.3s ease-in-out;
 	-moz-transition: all 0.3s ease-in-out;
 	-o-transition: all 0.3s ease-in-out;
@@ -878,10 +878,10 @@ section {
 	border-color: transparent #29aae1 transparent transparent;
 }
 .experience-timeline .col-right:hover .arrow {
-	border-color: transparent transparent transparent #f31205;
+	border-color: transparent transparent transparent #F6767E;
 }
 .experience-timeline .col-right:hover .duration, .experience-timeline .col-left:hover .duration {
-	color: #f31205;
+	color: #F6767E;
 }
 .experience-timeline {
 	border-collapse: collapse;
@@ -924,7 +924,7 @@ section {
 	font-size: 20px;
 	font-weight: 600;
 	padding-bottom: 12px;
-	color: #f31205;
+	color: #F6767E;
 }
 .certification-timeline .university {
 	font-size: 16px;
@@ -948,11 +948,11 @@ section {
 	transition: all 0.3s ease-in-out;
 }
 .certification-timeline .certification:hover .divider {
-	background-color: #f31205;
+	background-color: #F6767E;
 	color: #fff;
 }
 .certification-timeline .certification:hover .duration {
-	color: #f31205;
+	color: #F6767E;
 }
 .certification-timeline .row {
 	padding-bottom: 60px;
@@ -1004,7 +1004,7 @@ section {
 #download-resume .description {
 	font-family: 'Dancing Script', sans-serif;
 	font-size: 26px;
-  color: #f31205;
+  color: #F6767E;
 	font-weight: 100;
 	padding-bottom: 30px;
 }
@@ -1130,7 +1130,7 @@ section {
 
 /* --- Contact Section CSS Starts --- */
 #contact {
-  background-color: #f31205;
+  background-color: #F6767E;
 }
 #contact .heading,
 #contact h2,
@@ -1139,7 +1139,7 @@ section {
 }
 #contact h1.icon-line i {
 	background: #171717;
-	color: #f31205;
+	color: #F6767E;
 }
 #contact h1.icon-line:after {
   border-top: solid 2px #171717;
@@ -1205,7 +1205,7 @@ section {
             transition: all 300ms;
 }
 .social-icons a i:hover{
-    color: #f31205;
+    color: #F6767E;
 }
 .social-icons a i:hover::after{
     background: #171717;
@@ -1229,7 +1229,7 @@ section {
 #footer .line {
 	border-bottom-width: 1px;
 	border-bottom-style: solid;
-	border-bottom-color: #f31205;
+	border-bottom-color: #F6767E;
 	width: 100px;
 	margin-left: auto;
 	margin-right: auto;
@@ -1238,27 +1238,27 @@ section {
 }
 .myname1 {
   font-family: 'Pacifico', sans-serif;
-  color: #f31205;
+  color: #F6767E;
 	font-weight: 100;
 	line-height: 2;
 }
 .myname2 {
   font-family: 'Dancing Script', sans-serif;
   font-size: 22px;
-  color: #f31205;
+  color: #F6767E;
 	font-weight: 100;
 	line-height: 2;
 }
 #footer .desc .quote {
   font-family: 'Dancing Script', sans-serif;
   font-size: 26px;
-  color: #f31205;
+  color: #F6767E;
 	font-weight: 100;
 	line-height: 2;
 }
 #footer .desc i {
 	margin-bottom: 12px;
-  color: #f31205;
+  color: #F6767E;
 }
 /* --- Footer CSS Ends --- */
 
