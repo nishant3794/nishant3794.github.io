@@ -875,7 +875,7 @@ section {
 	transition: all 0.3s ease-in-out;
 }
 .experience-timeline .col-left:hover .arrow {
-	border-color: transparent #29aae1 transparent transparent;
+	border-color: transparent #F6767E transparent transparent;
 }
 .experience-timeline .col-right:hover .arrow {
 	border-color: transparent transparent transparent #F6767E;

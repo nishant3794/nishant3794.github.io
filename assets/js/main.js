@@ -67,7 +67,7 @@
                //your configuration goes here
                easing: 'easeOut',
                delay: 3000,
-               barColor:'#29aae1',
+               barColor:'#F6767E',
                trackColor:'rgba(255,255,255,0.2)',
                scaleColor: false,
                lineWidth: 8,
