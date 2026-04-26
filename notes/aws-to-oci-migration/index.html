@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>The 3-month AWS to OCI migration — Nishant Sharma</title>
+  <meta name="description" content="A war story from migrating an Indian fintech estate from AWS to Oracle Cloud in three months: 15 services, 3 MySQL databases, 2 TB of data, six hours of cutover downtime, ~30% cost reduction." />
+  <meta name="author" content="Nishant Sharma" />
+
+  <meta property="og:title" content="The 3-month AWS to OCI migration that taught me what cloud lock-in actually means" />
+  <meta property="og:description" content="15 services, 3 MySQL databases, 2 TB of data. Six hours of cutover downtime. ~30% cost reduction. And five lessons that stuck." />
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://thenishant.com/notes/aws-to-oci-migration/" />
+  <meta property="article:published_time" content="2026-04-26" />
+  <meta property="article:author" content="Nishant Sharma" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600;9..144,700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <div class="bg-fx"></div>
+  <div class="grain"></div>
+
+  <header class="topbar">
+    <a href="/" class="mark">Nishant Sharma</a>
+    <nav>
+      <a href="/notes/" class="current">Notes</a>
+    </nav>
+  </header>
+
+  <main class="post-container">
+    <div class="post-header">
+      <a href="/notes/" class="post-back">← All notes</a>
+      <div class="post-meta">
+        <span>Apr 2026</span>
+        <span class="sep">·</span>
+        <span class="tag">Migration</span>
+        <span class="sep">·</span>
+        <span>8 min read</span>
+      </div>
+      <h1 class="post-title">The 3-month AWS to OCI migration that taught me what cloud lock-in actually means</h1>
+    </div>
+
+    <article class="prose">
+      <p class="lede-paragraph">
+        A few years into running platform engineering at an Indian fintech, I got handed a problem that on paper sounded simple: move one of our product estates off AWS and onto Oracle Cloud. We had a chunk of OCI credits sitting on the shelf from an acquisition. Leadership wanted us to use them. The product was a rewards platform we'd recently acquired and rebranded — small enough to migrate, large enough to matter.
+      </p>
+
+      <p>
+        The plan was three months end to end. 15 services. 3 MySQL databases. About 2 TB of data. One brave platform team.
+      </p>
+
+      <p>
+        We hit the deadline. The whole production cutover took six hours of planned downtime — a single DNS switch, executed at 1 AM on a weekend — and we ended up cutting the bill on that estate by roughly 30%.
+      </p>
+
+      <p>
+        That's the clean version. The actual version had a lot more swearing in it. Here's what I learned, in roughly the order I learned it.
+      </p>
+
+      <h2><span class="h-num">Lesson 01</span>"Lift and shift" is a lie you tell project managers</h2>
+
+      <p>
+        The first week was the most dangerous week of the migration, and I didn't realise it at the time. We sat in a planning room and built the kind of confident timeline you build when you've never done the specific thing before but you've done a hundred similar-shaped things.
+      </p>
+
+      <p>
+        Compute? Easy. EC2 to OCI Compute is a 1:1 mapping. Storage? Easy. Block volumes are block volumes. Databases? Easy. MySQL is MySQL. Networking? We've done VPCs a thousand times.
+      </p>
+
+      <p>
+        Each of those was technically true and operationally misleading. EC2 instance types don't map cleanly to OCI shapes — the CPU/memory ratios are different, and what was rightsized on AWS would be either underpowered or wasteful on OCI. MySQL on RDS is not the same as MySQL on OCI's MySQL Database Service — the parameter groups, the backup mechanics, the monitoring hooks, the way you get root access for ops tasks all differ. VPCs and OCI VCNs look similar in a slide deck and behave completely differently when you start writing security lists vs. NSGs and realising stateful vs. stateless rules don't match your AWS mental model.
+      </p>
+
+      <p>
+        The lesson: budget at least 25% of your migration timeline for "things that look the same but aren't." That estimate has held up across every migration I've watched since.
+      </p>
+
+      <h2><span class="h-num">Lesson 02</span>The missing service is the one that nearly kills you</h2>
+
+      <p>
+        Two weeks in, I was reviewing the architecture diagram and felt the kind of cold drop in your stomach that comes when you realise you've forgotten something obvious.
+      </p>
+
+      <p>
+        OCI didn't have a CDN.
+      </p>
+
+      <p>
+        <em>(They have one now in some form, depending on when you read this — but at the time we did this work, there was no native equivalent to CloudFront.)</em>
+      </p>
+
+      <p>
+        Our rewards platform had image-heavy product pages — merchant logos, campaign banners, transaction receipts. CloudFront was doing a lot of work we hadn't been thinking about: edge caching, image optimization, TLS termination at the edge, geographic distribution. None of that came over for free.
+      </p>
+
+      <p>
+        We solved it by putting Cloudflare in front of OCI. That ended up being the right architectural choice — Cloudflare's a better CDN for our use case anyway, and we avoided cloud lock-in on the edge layer — but figuring it out cost us a week of architecture work we hadn't budgeted for. We had to redesign:
+      </p>
+
+      <ul>
+        <li>TLS certificate management (now living at Cloudflare, not in OCI)</li>
+        <li>Origin shielding so we weren't hammering the OCI load balancers</li>
+        <li>Cache invalidation hooks from our deployment pipeline</li>
+        <li>Geographic routing rules that had been implicit in CloudFront's behavior</li>
+        <li>The WAF layer, which we'd casually been doing in CloudFront and now needed to consciously place</li>
+      </ul>
+
+      <p>
+        The lesson here isn't "OCI bad" or "AWS good." Every cloud has gaps; you just don't notice the gaps in the cloud you're already running on because you've absorbed the workarounds into your architecture without realising it.
+      </p>
+
+      <blockquote>
+        <p>The cloud you're on isn't a list of services you use — it's the shape of the assumptions baked into your system. Migrating exposes those assumptions one by one, often at the worst possible time.</p>
+      </blockquote>
+
+      <p>
+        If I were doing this again from scratch, I'd spend the first week of any migration doing a "service surface audit": list every AWS service you use, including the ones you're using passively (like Route 53 health checks, or Lambda@Edge functions you forgot about), and map each one to a target-cloud equivalent or a third-party replacement. The map doesn't need to be perfect. It just needs to exist before you start moving anything.
+      </p>
+
+      <h2><span class="h-num">Lesson 03</span>The database migration is where the schedule actually lives</h2>
+
+      <p>
+        Compute migration is annoying but parallelisable. You can copy AMIs, build images, run Terraform. If something breaks you can throw it away and try again. The pace is bounded by your engineers' speed.
+      </p>
+
+      <p>
+        Database migration is none of those things. It's a serial process, it's irreversible the moment you cut over, and the pace is bounded by the laws of physics — specifically, the bandwidth between your source and your destination and the rate at which your write load can be replicated.
+      </p>
+
+      <p>
+        We had three MySQL databases. None of them were huge, but two of them were write-heavy enough that initial-snapshot-plus-binlog-catchup was non-trivial. We ended up running the migration in a pattern I'd recommend to anyone:
+      </p>
+
+      <ol>
+        <li><strong>Forklift the snapshot first.</strong> Take a consistent snapshot, ship the bytes to the target, restore it. This is your "almost there" moment. Resist the urge to call it done.</li>
+        <li><strong>Set up logical replication from source to target.</strong> Binlog-based, in our case. Let it run for at least a week before you cut over. You're not just catching up — you're proving the replication pipeline works under real load.</li>
+        <li><strong>Cut over by stopping writes on source, waiting for replication to drain, then flipping DNS.</strong> This is your downtime window. For us, it was the six hours.</li>
+        <li><strong>Have a written rollback plan, in plain English, that doesn't require Slack to execute.</strong> If your incident response depends on the same SaaS tools you're migrating away from, you have a problem. We printed the rollback runbook on actual paper. Felt silly. Was right.</li>
+      </ol>
+
+      <p>
+        The thing nobody tells you about database migrations is that the failure modes are <em>quiet</em>. Compute migration failures are loud — the service doesn't start, the health check fails, the alert fires. Database migration failures are things like "this one foreign key constraint behaves slightly differently because the collation default changed" or "this stored procedure works fine but takes 4x longer because the query planner makes different choices on the new instance type." You don't notice these until a user notices, which is the worst kind of monitoring.
+      </p>
+
+      <p>
+        We caught all of these in pre-prod because we ran the new database under a shadow workload for two weeks before cutover. Worth every hour.
+      </p>
+
+      <h2><span class="h-num">Lesson 04</span>Cost wins are mostly architectural, not contractual</h2>
+
+      <p>
+        I'd told leadership we'd see roughly a 30% reduction in spend on the migrated estate. That number wasn't pulled from thin air — it was based on OCI's published instance pricing vs. our AWS rate cards, and on some napkin math about right-sizing during the migration.
+      </p>
+
+      <p>
+        We hit it. But the breakdown of <em>where</em> the savings came from was different than I'd predicted.
+      </p>
+
+      <p>
+        Less than half of the savings came from raw cloud-pricing differences. The bigger chunks came from:
+      </p>
+
+      <ul>
+        <li><strong>Right-sizing during the move.</strong> When you're rebuilding everything anyway, you actually pay attention to whether that 16-core instance is doing 16 cores of work. We found a lot of overprovisioned services that had been quietly burning money for years on AWS. We just hadn't been forced to look.</li>
+        <li><strong>Consolidating workloads.</strong> A migration is a great excuse to ask "do we really need three separate clusters for this?" In several cases, no, we didn't.</li>
+        <li><strong>Replacing expensive managed services with self-hosted equivalents</strong> where it made sense. (And, importantly, <em>not</em> doing this where it didn't.)</li>
+      </ul>
+
+      <blockquote>
+        <p>Don't migrate to save money. Migrate, and use the migration as an excuse to do all the optimisation work you've been putting off.</p>
+      </blockquote>
+
+      <p>
+        The cloud arbitrage is real but small. The architectural cleanup is where the real savings live, and you only get cultural permission to do that cleanup during a migration.
+      </p>
+
+      <p>
+        I now believe most cloud cost problems are not procurement problems. They're rotting-architecture problems wearing a procurement disguise.
+      </p>
+
+      <h2><span class="h-num">Lesson 05</span>The cutover is anticlimactic if you've done your job</h2>
+
+      <p>
+        Here's how the actual production cutover went.
+      </p>
+
+      <p>
+        I had blocked off a 6-hour window starting at 1 AM on a Saturday. Engineers were on call. We'd run a tabletop rehearsal earlier in the week with the rollback path explicitly walked through. The DNS records were pre-staged with low TTLs days in advance so the cutover wouldn't be bottlenecked on resolver caches. Connection draining was scripted. Database write-stop and replication-drain checks were automated.
+      </p>
+
+      <p>What actually happened:</p>
+
+      <ul>
+        <li><code>1:00 AM</code> — pause writes on the AWS side.</li>
+        <li><code>1:08 AM</code> — replication confirms drained.</li>
+        <li><code>1:15 AM</code> — DNS flipped.</li>
+        <li><code>1:35 AM</code> — first synthetic checks pass on the OCI side.</li>
+        <li><code>2:30 AM</code> — full smoke test done, payments flowing, dashboards green.</li>
+        <li><code>3:00 AM</code> — I went to bed.</li>
+      </ul>
+
+      <p>
+        We'd budgeted six hours and used about two. The "six-hour cutover" became one line on a status report and disappeared into the kind of organisational invisibility that only successful migrations achieve. The job, when done well, looks easy from the outside.
+      </p>
+
+      <p>
+        This is one of the strange properties of platform work: when you do it right, nobody notices. The migration that goes well is the migration nobody remembers. The migration that goes badly becomes a five-year scar that everyone in the company has an opinion about. There is no third outcome.
+      </p>
+
+      <hr/>
+
+      <h2>What I'd tell someone starting a similar migration today</h2>
+
+      <p>
+        If you're standing at the start of a multi-month, multi-cloud migration and want one piece of advice from someone who's been through it:
+      </p>
+
+      <blockquote>
+        <p>The migration will not be technically hard. The migration will be hard for organisational reasons disguised as technical reasons.</p>
+      </blockquote>
+
+      <p>
+        You'll discover an undocumented dependency on a service nobody owns. You'll find a script that someone left running in cron three years ago that turns out to be load-bearing. You'll have a stakeholder who says "yes, you can take downtime" until the moment you ask them to confirm in writing. You'll have a database with a setting that's correct on AWS and wrong on OCI for reasons nobody on the team can explain because the person who set it left in 2019.
+      </p>
+
+      <p>
+        The technical work is the smaller half. Plan accordingly. Build slack into the timeline for the organisational archaeology, not for the engineering. The engineering will be fine. The archaeology is where the schedule goes to die.
+      </p>
+
+      <p>
+        And, on the way out — the thing I keep coming back to from this project: <strong>multi-cloud isn't a strategy, it's a discipline.</strong> It's a discipline of writing your infrastructure code so it doesn't quietly assume one provider. It's a discipline of being honest about which services you can swap and which ones are load-bearing. It's a discipline of paying a small, ongoing tax to keep your options open, instead of paying a large, sudden tax when you're forced to migrate.
+      </p>
+
+      <p>
+        I'm a better engineer for having done this. I would also, given the choice, prefer not to do another one for a while.
+      </p>
+
+      <div class="post-end">
+        <span><a href="/notes/" style="color: var(--ink-mute); text-decoration: none;">← All notes</a></span>
+        <span>Nishant Sharma · 2026</span>
+      </div>
+    </article>
+  </main>
+</body>
+</html>

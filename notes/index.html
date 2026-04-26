@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Notes — Nishant Sharma</title>
+  <meta name="description" content="Notes on platform engineering, migrations, reliability, and cost work." />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600;9..144,700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <div class="bg-fx"></div>
+  <div class="grain"></div>
+
+  <header class="topbar">
+    <a href="/" class="mark">Nishant Sharma</a>
+    <nav>
+      <a href="/notes/" class="current">Notes</a>
+    </nav>
+  </header>
+
+  <main class="container">
+    <div class="notes-hero">
+      <div class="eyebrow">Notes</div>
+      <h1>Field notes from <em>platform engineering.</em></h1>
+      <p>
+        Occasional writing on migrations, reliability practice, cost work, and the slow careful business of keeping cloud platforms running.
+      </p>
+    </div>
+
+    <ul class="notes-list">
+      <li>
+        <a href="/notes/aws-to-oci-migration/">
+          <div class="note-meta">
+            <span>Apr 2026</span>
+            <span class="sep">·</span>
+            <span class="tag">Migration</span>
+            <span class="sep">·</span>
+            <span>8 min read</span>
+          </div>
+          <h2 class="note-title">The 3-month AWS to OCI migration that taught me what cloud lock-in actually means</h2>
+          <p class="note-summary">
+            We moved 15 services, 3 MySQL databases, and 2 TB of data from AWS to Oracle Cloud in three months. The cutover was anticlimactic. The lessons that stuck were not.
+          </p>
+        </a>
+      </li>
+    </ul>
+
+    <footer>
+      <span><a href="/" style="color: var(--ink-mute); text-decoration: none;">← thenishant.com</a></span>
+      <span>© 2026 Nishant Sharma</span>
+    </footer>
+  </main>
+</body>
+</html>
