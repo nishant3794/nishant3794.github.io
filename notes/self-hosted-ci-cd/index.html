@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Why we self-host our CI/CD — Nishant Sharma</title>
+  <meta name="description" content="The decision narrative behind moving our CI/CD off managed runners and onto self-hosted GitHub ARC + ArgoCD. What we rejected, what bit us, and what I'd tell someone weighing the same call today." />
+  <meta name="author" content="Nishant Sharma" />
+
+  <meta property="og:title" content="Why we self-host our CI/CD" />
+  <meta property="og:description" content="The trade-offs behind GitHub ARC + ArgoCD, written from the lead's chair." />
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://thenishant.com/notes/self-hosted-ci-cd/" />
+  <meta property="article:published_time" content="2026-03-15" />
+  <meta property="article:author" content="Nishant Sharma" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600;9..144,700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <div class="bg-fx"></div>
+  <div class="grain"></div>
+
+  <header class="topbar">
+    <a href="/" class="mark">Nishant Sharma</a>
+    <nav>
+      <a href="/notes/" class="current">Notes</a>
+    </nav>
+  </header>
+
+  <main class="post-container">
+    <div class="post-header">
+      <a href="/notes/" class="post-back">← All notes</a>
+      <div class="post-meta">
+        <span>Mar 2026</span>
+        <span class="sep">·</span>
+        <span class="tag">Platform</span>
+        <span class="sep">·</span>
+        <span>7 min read</span>
+      </div>
+      <h1 class="post-title">Why we self-host our CI/CD</h1>
+    </div>
+
+    <article class="prose">
+      <p class="lede-paragraph">
+        Most CI/CD posts you read on the internet are how-to guides. This one isn't. We moved a sizeable chunk of our build and deploy pipeline off managed runners and onto a self-hosted GitHub ARC + ArgoCD setup. I want to talk about why — what we considered, what we rejected, what bit us, and what I'd tell someone weighing the same call today.
+      </p>
+
+      <p>
+        For the implementation specifics — the YAML, the IRSA wiring, the ApplicationSet configurations — my colleague <a href="https://medium.com/@shubham9t9/self-hosted-ci-cd-using-github-arc-and-argocd-9ea59be46f2d" target="_blank" rel="noopener">wrote a thorough walkthrough on Medium</a> that you should read alongside this. He built much of it. I'll stay at altitude here.
+      </p>
+
+      <h2><span class="h-num">Context</span>What we actually had</h2>
+
+      <p>
+        Picture the starting state. A growing fintech engineering org, several hundred engineers, hundreds of microservices spread across multiple Kubernetes clusters and several AWS accounts. CI/CD was a patchwork — some teams on GitHub-hosted runners, some on a legacy Jenkins setup that nobody wanted to touch, some on managed CI services that had quietly accumulated cost and complexity over the years. Deployments were inconsistent. Build times were unpredictable. The security posture was worse than it should have been because we had AWS keys living in CI configurations across more places than I was comfortable with.
+      </p>
+
+      <p>
+        The trigger to do something about it was a combination of three things, none of which would have been enough on its own:
+      </p>
+
+      <ol>
+        <li>An audit cycle was approaching, and our auditors were going to ask uncomfortable questions about static AWS credentials in CI.</li>
+        <li>The bill for managed CI was growing in a way that had crossed the line from "annoying" to "actively worth a quarter's engineering investment to fix."</li>
+        <li>Our build minutes on managed runners were unpredictable in a way that was starting to slow down release cadence — particularly for services with private VPC dependencies that needed a tunnel back through our network.</li>
+      </ol>
+
+      <p>
+        Any one of these we'd have lived with. All three together meant the status quo was costing us more than the migration would.
+      </p>
+
+      <h2><span class="h-num">Decision</span>What we considered, and what we rejected</h2>
+
+      <p>
+        I want to be honest about the alternatives because the path we took looks obvious in retrospect, and it really wasn't at the time.
+      </p>
+
+      <p>
+        <strong>Stay fully managed, fix the cost problem with negotiation.</strong> The cheapest option in engineering time. We rejected it because the security and VPC-access problems were structural — no contract negotiation fixes the fact that managed runners can't natively reach a private ECR. We could have bolted on a self-hosted runner pool *just* for the network-bound builds, but then we'd be operating two CI systems, which is worse than operating one of either.
+      </p>
+
+      <p>
+        <strong>Move everything to a CI SaaS with private-VPC support.</strong> A few products in this space are genuinely good. The blocker was lock-in: we'd be paying a per-build premium forever for a capability we could absorb in-house, and we'd be re-platforming again the moment the vendor's pricing or product direction changed. We're a fintech; we run in regulated environments; and our auditors prefer fewer third parties in the build path, not more.
+      </p>
+
+      <p>
+        <strong>Roll our own from scratch.</strong> Tempting in the way that all "we'll just build it" plans are tempting, and wrong for the same reasons. Building a CI system is a real engineering project; running one is a perpetual one. We'd have spent a year on something that GitHub Actions already does well.
+      </p>
+
+      <p>
+        <strong>Self-hosted runners for GitHub Actions, with ArgoCD for the deploy half.</strong> This is what we picked. The bet was that we'd get the developer experience of GitHub Actions (which our engineers already knew) with the network access, security posture, and cost profile of running the compute ourselves. ArgoCD on the deploy side because we wanted Git as the single source of truth for cluster state — not just for audit, but because pull-based deploys behave better during partial outages than push-based ones.
+      </p>
+
+      <h2><span class="h-num">Trade-off</span>The thing nobody acknowledges in CI/CD posts</h2>
+
+      <blockquote>
+        <p>Self-hosted CI is cheaper in dollars and more expensive in attention. You're not eliminating the operational burden — you're moving it from a vendor's on-call to your own.</p>
+      </blockquote>
+
+      <p>
+        I've read more enthusiastic write-ups of self-hosted CI than I can count, and almost none of them are honest about this. The runners need to be patched. The autoscaler needs to be tuned. When the build queue backs up at 3 PM on a Tuesday because someone pushed to fifteen repos at once, that's now your problem. When a runner pod goes into CrashLoopBackOff because of a kernel update, that's your problem too.
+      </p>
+
+      <p>
+        The economic argument for self-hosted CI is very real, but it works only if you have the platform team to absorb that operational tax. We did. If you don't — if your DevOps function is two people stretched across everything — managed CI is almost always the right answer, even at the higher per-minute price. The dollar cost is a known quantity. Operational debt isn't.
+      </p>
+
+      <p>
+        I'd also be honest that the security argument cuts both ways. Self-hosted runners eliminate one risk surface (static AWS keys in third-party systems) and create another (a fleet of runner pods with broad cluster access, which need to be hardened, network-segmented, and continuously monitored). We came out ahead, but the migration didn't make the system <em>simpler</em> from a security standpoint. It made it <em>different</em>, in ways that map better to how we wanted to handle audits.
+      </p>
+
+      <h2><span class="h-num">Surprise</span>What actually bit us</h2>
+
+      <p>
+        Two things bit us in production that I didn't see coming, and both are worth flagging because the public write-ups gloss over them.
+      </p>
+
+      <p>
+        <strong>The first was the HPA-versus-ArgoCD fight.</strong> When you have a deployment with an autoscaler controlling replica count, and ArgoCD continuously reconciling the deployment manifest from Git, you have two systems with opinions about how many pods should be running. They will fight. Pods will get deleted and recreated in a slow oscillation that looks fine in a dashboard but is actively bad for tail latency. The fix is well-known once you know to look for it (ArgoCD's <code>ignoreDifferences</code> on the replica field, configured precisely), but discovering it on a Friday afternoon while a senior PM is asking why response times are spiking is the kind of thing I'd rather you skip. My colleague <a href="https://medium.com/@shubham9t9/self-hosted-ci-cd-using-github-arc-and-argocd-9ea59be46f2d" target="_blank" rel="noopener">documented the fix in detail</a>; if you're rolling out ArgoCD with HPAs, read that section before you ship to production, not after.
+      </p>
+
+      <p>
+        <strong>The second was unnecessary pod restarts on sync.</strong> We saw pods restarting on every ArgoCD sync even when the actual deployment manifest hadn't meaningfully changed. The cause turned out to be a class of small, semantically-irrelevant differences (annotations that other controllers were touching, status fields, ordering changes) that ArgoCD interpreted as drift. In production, this meant the cost of a "no-op" deploy was a rolling restart across the service. For a payments system, that's not a no-op at all.
+      </p>
+
+      <p>
+        Both of these had architectural fixes available. The lesson isn't "self-hosted CI/CD is fragile" — it's that the bridge between "GitOps ideal" and "production reality" has more load-bearing detail than the GitOps marketing would have you believe. Plan for that. Run your CI/CD revamp through a real production rollout calendar, not a happy-path demo.
+      </p>
+
+      <h2><span class="h-num">Result</span>What we got out of it</h2>
+
+      <p>
+        Six months in, the picture is broadly what we hoped for, with some surprises in the mix.
+      </p>
+
+      <p>
+        Build times dropped meaningfully — partly because the runners are inside the VPC and pushing to ECR no longer involves the public internet, partly because we can size the runner shapes for our actual workloads instead of accepting whatever the managed offering ships. Deploys went from "happens on a schedule, with humans in the loop" to "happens when Git changes, no humans required." Static AWS keys are gone from the build path; everything authenticates through OIDC and IRSA. The auditors were happy, which I count as the best possible kind of audit outcome.
+      </p>
+
+      <p>
+        The surprise was developer experience. I'd worried that moving to GitOps would feel like a step backwards for developers who liked the immediacy of clicking "deploy" and seeing things happen. In practice, the opposite. Developers liked seeing their config changes in their own repo's Helm chart, liked the ApplicationSet pattern that let them own application config without owning infrastructure, liked the fact that "what is in production" was now a question Git could answer. The thing that was supposed to be the hard sell turned out to be the easy one.
+      </p>
+
+      <h2><span class="h-num">Closing</span>What I'd tell someone considering this today</h2>
+
+      <p>
+        If you're a platform leader at an org of 50+ engineers in a regulated environment, weighing whether to self-host your CI/CD, three thoughts.
+      </p>
+
+      <p>
+        <strong>Be honest about why you're doing it.</strong> The cost argument alone is rarely enough — managed CI is genuinely cheap relative to senior engineering time, and the difference is small enough that it can flip in either direction depending on how you account for the operational load. The argument that holds up is some combination of cost <em>plus</em> a structural reason (network, audit, lock-in, cadence) that managed CI can't address. If you only have the cost reason, stay managed and renegotiate.
+      </p>
+
+      <p>
+        <strong>Don't underestimate the deploy half.</strong> The CI side of this is mostly a shape-matching exercise — GitHub ARC, configured well, behaves a lot like managed runners. The CD side, particularly the GitOps reconciliation patterns, is where the genuinely new operational concepts live. Budget time and attention there, not in the runner setup.
+      </p>
+
+      <p>
+        <strong>Have a runbook for the day ArgoCD breaks.</strong> Sooner or later, the controller will fall over, or the GitOps repo will reach a state ArgoCD can't reconcile, and you'll need to deploy something manually under pressure. The team that has practised this is fine. The team that hasn't is not. We rehearse this twice a year alongside our DR drills, and it's been worth every hour.
+      </p>
+
+      <p>
+        For everything else — the YAML, the build steps, the production fix for the HPA conflict — read <a href="https://medium.com/@shubham9t9/self-hosted-ci-cd-using-github-arc-and-argocd-9ea59be46f2d" target="_blank" rel="noopener">my colleague's walkthrough</a>. He built it; he should get the credit for the implementation detail.
+      </p>
+
+      <div class="post-end">
+        <span><a href="/notes/" style="color: var(--ink-mute); text-decoration: none;">← All notes</a></span>
+        <span>Nishant Sharma · 2026</span>
+      </div>
+    </article>
+  </main>
+</body>
+</html>
