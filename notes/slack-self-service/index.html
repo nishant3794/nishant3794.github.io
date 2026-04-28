@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>The Slack bot that runs our infrastructure — Nishant Sharma</title>
+  <meta name="description" content="How we built a self-service platform for API whitelisting, access requests, and ephemeral environments — and why moving DevOps work into Slack changed the team's relationship with the rest of the company." />
+  <meta name="author" content="Nishant Sharma" />
+
+  <meta property="og:title" content="The Slack bot that runs our infrastructure" />
+  <meta property="og:description" content="A self-service platform built into Slack — and why moving DevOps work into the channels people already use changed how the team operates." />
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://thenishant.com/notes/slack-self-service/" />
+  <meta property="og:image" content="https://thenishant.com/og.jpg" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="Nishant Sharma — Platform engineering, quietly." />
+  <meta property="article:published_time" content="2026-02-12" />
+  <meta property="article:author" content="Nishant Sharma" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="The Slack bot that runs our infrastructure" />
+  <meta name="twitter:description" content="A self-service platform built into Slack — and why moving DevOps work into the channels people already use changed how the team operates." />
+  <meta name="twitter:image" content="https://thenishant.com/og.jpg" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600;9..144,700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <div class="bg-fx"></div>
+  <div class="grain"></div>
+
+  <header class="topbar">
+    <a href="/" class="mark">Nishant Sharma</a>
+    <nav>
+      <a href="/notes/" class="current">Notes</a>
+    </nav>
+  </header>
+
+  <main class="post-container">
+    <div class="post-header">
+      <a href="/notes/" class="post-back">← All notes</a>
+      <div class="post-meta">
+        <span>Feb 2026</span>
+        <span class="sep">·</span>
+        <span class="tag">Platform</span>
+        <span class="sep">·</span>
+        <span>6 min read</span>
+      </div>
+      <h1 class="post-title">The Slack bot that runs our infrastructure</h1>
+    </div>
+
+    <article class="prose">
+      <p class="lede-paragraph">
+        A meaningful chunk of what a DevOps team does in any growing company is repetitive, tedious, and unfortunately load-bearing. Access requests. API whitelisting. SSL renewals. Spinning up a non-prod environment for a feature branch. Rotating a Kafka topic. None of these are interesting problems. All of them, if neglected, will quietly choke an engineering org. We decided we wanted out of the loop on as many of these as we could safely automate — and the cleanest place to do that turned out to be inside Slack.
+      </p>
+
+      <p>
+        This is a short note about one slice of that work — the API whitelisting flow — and the broader principle behind why we kept building into Slack instead of into a portal nobody would visit.
+      </p>
+
+      <h2><span class="h-num">The problem</span>Tickets that nobody wanted to file, or fulfil</h2>
+
+      <p>
+        At the start, the workflow for getting an external API whitelisted on our AWS API Gateway looked like this. A developer would file a ticket. The ticket would sit. Someone on DevOps would eventually pick it up, ping the developer's manager on Slack to confirm approval, get approval, manually update the AWS configuration, manually note the change in JIRA, and close the ticket. Lead time: two days on average, four if it landed on a Friday afternoon. The work itself was maybe ten minutes. Everything else was queue time and context-switching.
+      </p>
+
+      <p>
+        Multiply that by the dozen-or-so similar workflows on our plate — access requests, ad-hoc database queries, SSL renewals, Kafka topic creation, ephemeral non-prod environments — and the platform team was spending a meaningful slice of every week on work that, individually, took ten minutes. The frustrating part wasn't the volume. It was that none of the steps required judgement. We were a human approval queue with a network latency of "whenever we get to it."
+      </p>
+
+      <h2><span class="h-num">The decision</span>Build it where the work already happens</h2>
+
+      <p>
+        The obvious answer was a self-service portal. We considered it. We rejected it. Two reasons.
+      </p>
+
+      <p>
+        <strong>The first is that internal portals have a discoverability problem.</strong> They live at a URL that isn't bookmarked, behind an SSO that takes three clicks, and they get used twice a quarter. People forget they exist. By the time you're searching "how do I get an API whitelisted at company X" in your own intranet, you've already given up and sent a Slack message to whoever you think might know.
+      </p>
+
+      <p>
+        <strong>The second is that approvals are social.</strong> When a developer needs their manager to approve something, the natural medium for that approval is the medium the manager is already using. That is, in our case, Slack. Bouncing the manager out to a portal to approve a thing — even a one-click approval — is a worse experience than meeting them where they live.
+      </p>
+
+      <blockquote>
+        <p>The best place to put a self-service tool is wherever your engineers and managers already spend their day. Anything else is a portal that quietly dies.</p>
+      </blockquote>
+
+      <p>
+        So we built into Slack.
+      </p>
+
+      <h2><span class="h-num">The flow</span>What it looks like to use</h2>
+
+      <p>
+        From a developer's perspective, the API whitelisting flow now looks like this:
+      </p>
+
+      <ol>
+        <li>The developer types <code>/apiwhitelisting</code> in any Slack channel or DM.</li>
+        <li>A modal opens with a small form. They pick the environment (prod or non-prod), the HTTP method (GET, POST, etc.), the target API Gateway, and the manager whose approval is required for that environment.</li>
+        <li>They submit. A JIRA ticket is created automatically with all the details, and a Slack message goes to the selected manager with two buttons: approve, or deny.</li>
+        <li>If the manager approves, a GitHub Actions workflow fires, applies the configuration to AWS API Gateway, and posts the result back to the original Slack thread. The JIRA ticket is moved to "Done" with the approver's name attached.</li>
+        <li>If the manager denies, the JIRA ticket is closed with the reason logged, and the developer gets a Slack DM explaining the rejection.</li>
+      </ol>
+
+      <p>
+        Time-to-completion when everything is in cache and the manager is at their desk: under two minutes. Time when the manager is in a meeting: as long as it takes them to glance at Slack later. Either way, the DevOps team is not in the path. We see the activity in our audit logs, but we don't have to do anything.
+      </p>
+
+      <h2><span class="h-num">The plumbing</span>How it's built</h2>
+
+      <p>
+        The architecture is intentionally boring, because boring architecture is what survives.
+      </p>
+
+      <p>
+        At the centre is a small Python service we call the self-service backend. It speaks to Slack's APIs (slash commands, modals, interactive components), to JIRA (issue creation, status transitions, attribution), and to GitHub (workflow dispatch). It runs as a Kubernetes deployment in our internal cluster like any other internal service — same observability, same deploy pipeline, same on-call surface. There's nothing exotic about it.
+      </p>
+
+      <p>
+        The actual infrastructure changes — the part that touches AWS — happen in GitHub Actions, not in the Python service. This was a deliberate choice. We wanted a clear separation: the Python service is a coordinator; the change itself is a CI run, with the same logs, audit trail, and rollback semantics as any other deploy. If something goes wrong, the failure shows up where engineers already look. If the Python service falls over, no infrastructure has been touched; the request just sits there and we get an alert.
+      </p>
+
+      <p>
+        JIRA is the system of record. Every action — request raised, who approved it, when GitHub Actions completed, when AWS confirmed the change — gets written back to the ticket as it happens. We didn't have to build this for ourselves; we built it because the auditors needed it. But it turned out to also be useful for us, because "show me every API that was whitelisted last quarter and who approved each one" is now a JIRA query, not a six-hour archaeology expedition.
+      </p>
+
+      <h2><span class="h-num">The principle</span>Why this generalised</h2>
+
+      <p>
+        Once we had the API whitelisting flow working, the same scaffolding extended to almost everything else on the toil list with relatively little extra work.
+      </p>
+
+      <p>
+        Access requests work the same way: slash command, form, manager approval, automated provisioning, JIRA documented. Kafka topic creation: same. SSL certificate renewals: same, but with no human approval — the bot just does it on a schedule and posts a confirmation. Ephemeral non-prod environments: a developer asks for one, the bot spins it up with an auto-destruct timer, and the JIRA ticket closes itself when the environment dies.
+      </p>
+
+      <p>
+        After about a year of building these flows out, roughly 60% of what used to be DevOps tickets had been absorbed into the self-service layer. Not because we'd worked harder — because we'd moved the work. The DevOps team's calendar opened up enough to do the bigger projects we had been deferring for years.
+      </p>
+
+      <p>
+        The principle that crystallised for me out of all this:
+      </p>
+
+      <blockquote>
+        <p>Most platform engineering work isn't building cool things. It's noticing what your team is doing repeatedly, and then making the repetition not require your team.</p>
+      </blockquote>
+
+      <h2><span class="h-num">The honest part</span>What this didn't fix</h2>
+
+      <p>
+        I don't want to suggest this was a clean win. A few things are worth flagging.
+      </p>
+
+      <p>
+        <strong>The bot inherited the social dynamics of approval.</strong> If a manager was slow to approve, that was now a manager problem instead of a DevOps problem — but it was still a problem for the developer waiting. We considered building escalation logic ("ping the manager again after 24 hours, escalate to skip-level after 48") and ultimately didn't, because automated nudging of senior people is a way to make enemies fast. But the lead-time variability didn't disappear; it just moved.
+      </p>
+
+      <p>
+        <strong>Some flows resisted automation harder than others.</strong> API whitelisting was easy because the change is small, well-defined, and reversible. Database query execution, by contrast, never made it into the self-service layer in a way I was happy with — the blast radius of an arbitrary <code>UPDATE</code> on production data is too large to delegate to a Slack button, regardless of how good the approval flow is. Some toil should stay manual on purpose. Knowing which is most of the job.
+      </p>
+
+      <p>
+        <strong>The self-service backend itself became a load-bearing piece of infrastructure.</strong> When it breaks, fifteen workflows break with it. We learned to monitor it like any other production system, treat its deploys carefully, and make sure the rollback was practised. None of this was hard, but it's worth saying out loud: when you build platform tooling, the platform tooling is now in production.
+      </p>
+
+      <h2><span class="h-num">Closing</span>For other platform leaders considering similar work</h2>
+
+      <p>
+        Three thoughts, if you're weighing whether to build something like this for your own team.
+      </p>
+
+      <p>
+        <strong>Start with the workflow that's most painful, not the workflow that's most automatable.</strong> Pick the one your team complains about in retros. Build that one well. The technical pattern that emerges will generalise; the political capital you earn from making one painful thing disappear is what funds the next ten flows.
+      </p>
+
+      <p>
+        <strong>Put the system of record somewhere your auditors will accept.</strong> For us that was JIRA, because our auditors already trusted JIRA. If you're in a regulated environment, do not improvise on this. The self-service flow is not the audit story — the JIRA-or-equivalent record is. Build that link in from day one.
+      </p>
+
+      <p>
+        <strong>Resist the temptation to build a portal.</strong> If the people you're trying to help are in Slack all day, build into Slack. If they live in your IDE, build into the IDE. If they live in a ticketing system, build there. Meet them where they are. Almost every internal platform that fails fails because someone built a beautiful self-contained thing in a place nobody wanted to go.
+      </p>
+
+      <p>
+        I'd build this again in a heartbeat. I'd build it slightly differently — more attention to the audit and rollback story from day one, less attention to the visual polish of the Slack modals — but the fundamental shape of "Slack interface, Python coordinator, GitHub Actions execution, JIRA system of record" has held up across two years of use and several dozen flows. It's the closest thing to a platform-engineering pattern I'd recommend without reservation.
+      </p>
+
+      <div class="post-end">
+        <span><a href="/notes/" style="color: var(--ink-mute); text-decoration: none;">← All notes</a></span>
+        <span>Nishant Sharma · 2026</span>
+      </div>
+    </article>
+  </main>
+</body>
+</html>
